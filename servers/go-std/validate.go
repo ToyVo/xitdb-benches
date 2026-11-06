@@ -42,8 +42,10 @@ func trimBody(body string) (string, string) {
 }
 
 type feedClaims struct {
-	Sub      string  `json:"sub"`
-	Username *string `json:"username"`
+	// Sub/Username are any on purpose: a JSON number in either field is
+	// a *payload* problem per SPEC-XITDB, not a signature problem.
+	Sub      any `json:"sub"`
+	Username any `json:"username"`
 	jwt.RegisteredClaims
 }
 
@@ -56,20 +58,22 @@ func verifyJWT(token, secret string) (uint64, string, string) {
 	if err != nil || !parsed.Valid {
 		return 0, "", "invalid or expired token"
 	}
-	if claims.Sub == "" {
+	subStr, ok := claims.Sub.(string)
+	if !ok || subStr == "" {
 		return 0, "", "invalid token payload"
 	}
-	for i := 0; i < len(claims.Sub); i++ {
-		if claims.Sub[i] < '0' || claims.Sub[i] > '9' {
+	for i := 0; i < len(subStr); i++ {
+		if subStr[i] < '0' || subStr[i] > '9' {
 			return 0, "", "invalid token payload"
 		}
 	}
-	id, err := strconv.ParseUint(claims.Sub, 10, 64)
+	id, err := strconv.ParseUint(subStr, 10, 64)
 	if err != nil || id < 1 {
 		return 0, "", "invalid token payload"
 	}
-	if claims.Username == nil {
+	nameStr, ok := claims.Username.(string)
+	if !ok {
 		return 0, "", "invalid token payload"
 	}
-	return id, *claims.Username, ""
+	return id, nameStr, ""
 }

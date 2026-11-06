@@ -88,6 +88,14 @@ func TestVerifyJWT(t *testing.T) {
 	if _, _, msg := verifyJWT(badSub, secret); msg != "invalid token payload" {
 		t.Errorf("bad-sub msg = %q", msg)
 	}
+	numSub := signForTest(secret, jwt.MapClaims{"sub": 9, "username": "alice", "iat": now, "exp": now + 3600})
+	if _, _, msg := verifyJWT(numSub, secret); msg != "invalid token payload" {
+		t.Errorf("numeric-sub msg = %q", msg)
+	}
+	numName := signForTest(secret, jwt.MapClaims{"sub": "1", "username": 123, "iat": now, "exp": now + 3600})
+	if _, _, msg := verifyJWT(numName, secret); msg != "invalid token payload" {
+		t.Errorf("numeric-username msg = %q", msg)
+	}
 	noName := signForTest(secret, jwt.MapClaims{"sub": "1", "iat": now, "exp": now + 3600})
 	if _, _, msg := verifyJWT(noName, secret); msg != "invalid token payload" {
 		t.Errorf("no-name msg = %q", msg)
