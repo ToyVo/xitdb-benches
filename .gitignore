@@ -1,0 +1,12 @@
+*.db
+*.db-wal
+*.db-shm
+feed.xitdb
+feed.xitdb-wal
+feed.xitdb-shm
+target/
+node_modules/
+bin/
+dist/
+.DS_Store
+/tmp/xb-*

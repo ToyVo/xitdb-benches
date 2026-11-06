@@ -1,0 +1,28 @@
+services:
+  rust-axum:
+    build: ./servers/rust-axum
+    ports: ["3001:3000"]
+    environment: [HOST=0.0.0.0, PORT=3000]
+  go-std:
+    build: ./servers/go-std
+    ports: ["3002:3000"]
+  ts-bun:
+    build: ./servers/ts-bun
+    ports: ["3003:3000"]
+  zig-std:
+    build: ./servers/zig-std
+    ports: ["3004:3000"]
+  clj-httpkit:
+    build: ./servers/clj-httpkit
+    ports: ["3005:3000"]
+  odin-std:
+    build: ./servers/odin-std
+    ports: ["3006:3000"]
+  java-spring:
+    build: ./servers/java-spring
+    ports: ["3007:3000"]
+  # nginx (optional, mirrors bench/nginx.conf, 64 idle conns):
+  # nginx:
+  #   image: nginx:stable
+  #   volumes: [./harness/bench/nginx.conf:/etc/nginx/nginx.conf:ro]
+  #   ports: ["3000:3000"]
