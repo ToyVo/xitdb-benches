@@ -45,3 +45,15 @@ jobs:
       - run: bash harness/run.sh servers/go-std
         env:
           SIZE: ${{ inputs.size || 'small' }}
+
+  ts-bun:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.4"
+      - run: cd seed && bun install
+      - run: bash harness/run.sh servers/ts-bun
+        env:
+          SIZE: ${{ inputs.size || 'small' }}
