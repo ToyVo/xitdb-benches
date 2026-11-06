@@ -1,0 +1,9 @@
+{
+  "name": "xitdb-bench-seed",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "xitdb": "0.28.0"
+  }
+}
