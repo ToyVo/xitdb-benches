@@ -1,0 +1,18 @@
+{
+  "lockfileVersion": 2,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "xitdb-bench-ts",
+      "dependencies": {
+        "jose": "6.2.15",
+        "xitdb": "0.28.0",
+      },
+    },
+  },
+  "packages": {
+    "jose": ["jose@6.2.15", "", {}, "sha512-qdF6ewcZARtef63fJ9AKKZPgxw+t7USH6HLXYcD4CrdmSvDp79rpJSPFEKc90QBeGS63u1KQtN2MZQHC0yDIzA=="],
+
+    "xitdb": ["xitdb@0.28.0", "", {}, "sha512-yqXVad5wQyfBew8hSXEjyzzWPJTC40hHzfbAz4FF+FdvEj1TfVP4LX9e3Tw8huB+bv1jafVNduWnWX14H+CNtA=="],
+  }
+}
