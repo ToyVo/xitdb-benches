@@ -27,5 +27,6 @@ Files:
   construction (fixed PRNG + fixed fileId); re-run and diff to confirm.
 - `golden-small/` (1k/10k seed) / `golden-full/` (50k/500k seed).
 - `bench/load.js` + `bench/nginx.conf` — vendored byte-identical from
-  upstream. k6: `k6 run -e BASE_URL=... -e VUS=100 bench/load.js`.
+  upstream. k6 (from repo root, TOKENS must point at the seed in use):
+  `k6 run -e BASE_URL=http://127.0.0.1:3000 -e VUS=100 -e TOKENS=/tmp/x/seed/tokens.json bench/load.js`.
 - `contracts.sh` — skeleton gate (all 7 honor install/build/start).

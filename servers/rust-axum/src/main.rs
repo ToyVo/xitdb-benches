@@ -172,7 +172,9 @@ fn read_post<M>(map: &HashMap<'_, FileCore, Sha1Hasher, M>, id_str: &str) -> Res
 fn read_feed_posts(db: &Db) -> Result<Vec<Post>> {
     let root_c = db.root_cursor();
     let root = HashMap::new_write(&root_c)?;
-    let feed_c = root.get("feed")?.ok_or(Error::Corrupted)?;
+    let Some(feed_c) = root.get("feed")? else {
+        return Ok(Vec::new());
+    };
     let feed = SortedMap::new(feed_c)?;
     let count = feed.count()?;
     let start = count.saturating_sub(20);
@@ -187,7 +189,9 @@ fn read_feed_posts(db: &Db) -> Result<Vec<Post>> {
         }
         idx = idx.saturating_add(1);
     }
-    let posts_c = root.get("posts")?.ok_or(Error::Corrupted)?;
+    let Some(posts_c) = root.get("posts")? else {
+        return Ok(Vec::new());
+    };
     let posts = HashMap::new(posts_c)?;
     let mut out = Vec::new();
     for id in &ids {
@@ -278,7 +282,9 @@ async fn get_post(State(state): State<Shared>, Path(id_raw): Path<String>) -> Re
         let guard = state.db.lock().unwrap_or_else(|e| e.into_inner());
         let found = (|| {
             let root = HashMap::new_write(&guard.root_cursor())?;
-            let posts_c = root.get("posts")?.ok_or(Error::Corrupted)?;
+            let Some(posts_c) = root.get("posts")? else {
+                return Ok(None);
+            };
             let posts = HashMap::new(posts_c)?;
             read_post(&posts, &id_str)
         })();

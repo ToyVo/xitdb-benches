@@ -1,24 +1,38 @@
+# M1: services run directly on the host via harness/run.sh (see README).
+# Container images land in M2: rust-axum's xitdb dep is a local path dep
+# (unpublished), so no Dockerfile can build it in isolation yet. Until
+# then every service sits behind the `m2` profile: plain
+# `docker compose up` starts nothing; `--profile m2` fails at build
+# until the M2 Dockerfiles exist. Port map (contracts.sh greps these):
+# rust 3001, go 3002, ts 3003, zig 3004, clj 3005, odin 3006, java 3007.
 services:
   rust-axum:
+    profiles: [m2]
     build: ./servers/rust-axum
     ports: ["3001:3000"]
     environment: [HOST=0.0.0.0, PORT=3000]
   go-std:
+    profiles: [m2]
     build: ./servers/go-std
     ports: ["3002:3000"]
   ts-bun:
+    profiles: [m2]
     build: ./servers/ts-bun
     ports: ["3003:3000"]
   zig-std:
+    profiles: [m2]
     build: ./servers/zig-std
     ports: ["3004:3000"]
   clj-httpkit:
+    profiles: [m2]
     build: ./servers/clj-httpkit
     ports: ["3005:3000"]
   odin-std:
+    profiles: [m2]
     build: ./servers/odin-std
     ports: ["3006:3000"]
   java-spring:
+    profiles: [m2]
     build: ./servers/java-spring
     ports: ["3007:3000"]
   # nginx (optional, mirrors bench/nginx.conf, 64 idle conns):
