@@ -30,3 +30,18 @@ jobs:
       - run: bash harness/run.sh servers/rust-axum
         env:
           SIZE: ${{ inputs.size || 'small' }}
+
+  go-std:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.4"
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - run: cd seed && bun install
+      - run: bash harness/run.sh servers/go-std
+        env:
+          SIZE: ${{ inputs.size || 'small' }}

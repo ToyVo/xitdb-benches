@@ -8,8 +8,8 @@ p99<1s, <1% errors.
 
 | Server | VUs | p95 | p99 | Notes |
 |---|---|---|---|---|
-| rust-axum | — | — | — | M1 reference, pending M3 hold |
-| go-std | — | — | — | scaffold |
+| rust-axum | — | — | — | M1 reference; local smoke VUS=100 p95=10ms p99=16ms, pending M3 hold |
+| go-std | — | — | — | local smoke VUS=50 p95=12ms p99=28ms (Mac, full seed); 42/42 small+full; pending M3 hold |
 | ts-bun | — | — | — | scaffold |
 | zig-std | — | — | — | scaffold |
 | clj-httpkit | — | — | — | scaffold |
