@@ -416,6 +416,9 @@ serve_conn :: proc(sock: net.TCP_Socket) {
 			want_body := len(head) >= 4 && head[:4] == "POST" && target == "/posts"
 			if cl, has_cl := get_header(head, "content-length"); want_body && has_cl {
 				if mblen, conv_ok := strconv.parse_int(cl); conv_ok && mblen > 0 {
+					if mblen > 1 << 20 {
+						break // absurd body: close rather than blow the arena
+					}
 					b := make([]u8, mblen, alloc)
 					// read_head may already hold body bytes past the header.
 					buffered := buf[n:]
@@ -434,7 +437,6 @@ serve_conn :: proc(sock: net.TCP_Socket) {
 		if !keep {
 			break
 		}
-		_ = n
 	}
 	net.close(sock)
 }
