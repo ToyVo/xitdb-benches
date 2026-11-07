@@ -58,6 +58,23 @@ jobs:
         env:
           SIZE: ${{ inputs.size || 'small' }}
 
+  clj-httpkit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.4"
+      - uses: DeLaGuardo/setup-clojure@13
+        with:
+          clojure-version: 1.12.6.1673
+          jdk-version: 21
+      - run: cd seed && bun install
+      - run: bash harness/run.sh servers/clj-httpkit
+        env:
+          SIZE: ${{ inputs.size || 'small' }}
+          FLAVOR: history
+
   zig-std:
     runs-on: ubuntu-24.04
     steps:
