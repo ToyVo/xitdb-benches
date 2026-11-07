@@ -57,3 +57,18 @@ jobs:
       - run: bash harness/run.sh servers/ts-bun
         env:
           SIZE: ${{ inputs.size || 'small' }}
+
+  zig-std:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.4"
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.17.0
+      - run: cd seed && bun install
+      - run: bash harness/run.sh servers/zig-std
+        env:
+          SIZE: ${{ inputs.size || 'small' }}

@@ -7,6 +7,8 @@ feed.xitdb-shm
 target/
 node_modules/
 bin/
+zig-out/
+.zig-cache/
 dist/
 .DS_Store
 /tmp/xb-*
