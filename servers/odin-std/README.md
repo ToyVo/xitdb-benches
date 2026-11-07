@@ -37,7 +37,8 @@ keep-alive. A 4MB arena per connection owns all transient bytes.
   fsync-on): 201 means committed + fsynced.
 - Manual compact-JSON emission with frozen key order
   (`id,body,created_at,author,like_count`); per-string escaping for
-  `"` `\` + controls.
+  `"` `\` + controls. (Odin `fmt` has no brace escape, so framing
+  avoids `fmt` entirely.)
 - JWT HS256 verified every request (hand-rolled over `core:crypto`,
   constant-time compare, 60s leeway for parity with the other
   references); auth checked before id validation per spec.
@@ -48,4 +49,6 @@ keep-alive. A 4MB arena per connection owns all transient bytes.
 - `vendor/xitdb` is upstream `odin-xitdb` pinned (see `vendor/README.md`).
 - POSTs with neither `content-length` nor chunked framing get a normal
   response with `connection: close` (there is no safe way to skip an
-  unframed body for reuse).
+  unframed body for reuse). Body bytes already buffered past the
+  headers are consumed first — otherwise the server blocks forever
+  waiting for arrived bytes.
