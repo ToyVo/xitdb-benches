@@ -12,7 +12,7 @@ pub const Post = struct {
     like_count: u64,
 };
 
-fn freeConst(alloc: std.mem.Allocator, s: []const u8) void {
+pub fn freeConst(alloc: std.mem.Allocator, s: []const u8) void {
     alloc.free(@constCast(s));
 }
 
@@ -214,13 +214,13 @@ pub fn postJson(alloc: std.mem.Allocator, p: Post) ![]u8 {
     return out.toOwnedSlice();
 }
 
-fn freePost(alloc: std.mem.Allocator, p: Post) void {
+pub fn freePost(alloc: std.mem.Allocator, p: Post) void {
     freeConst(alloc, p.body);
     freeConst(alloc, p.created_at);
     freeConst(alloc, p.author);
 }
 
-fn freePosts(alloc: std.mem.Allocator, feed: []Post) void {
+pub fn freePosts(alloc: std.mem.Allocator, feed: []Post) void {
     for (feed) |p| freePost(alloc, p);
     alloc.free(feed);
 }
