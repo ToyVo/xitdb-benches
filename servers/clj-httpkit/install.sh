@@ -17,6 +17,7 @@ fi
 if command -v clojure >/dev/null && ! grep -q "PREFIX" "$(command -v clojure)"; then
   echo "clojure already installed"
 else
+  apt-get update && apt-get install -y ruby
   # Upstream's installer wants an existing prefix dir and ruby under the
   # HOMEBREW_RUBY_PATH name (both Homebrew-isms that work fine on Ubuntu).
   tmp="$(mktemp -d)"
