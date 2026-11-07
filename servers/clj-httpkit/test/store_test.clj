@@ -1,5 +1,6 @@
 (ns store-test
   (:require [clojure.test :refer [deftest is]]
+            [cheshire.core :as json]
             [xitdb.db :as xdb]
             [store :refer [open-store health? get-post get-feed
                            create-post! like-post! post->json]])
@@ -41,6 +42,16 @@
       (is (= 20 (count feed)))
       (is (= (range 25 5 -1) (mapv :id feed))))))
 
+(deftest json-str-test
+  (is (= "\"b\"" (store/json-str "b")))
+  (is (= "\"a\\\"b\\\\c\"" (store/json-str "a\"b\\c")))
+  (is (= "\"x\\u001fy\"" (store/json-str (str "x" (char 31) "y"))))
+  (is (= "\"caf\u00e9 \u2713\"" (store/json-str "caf\u00e9 \u2713")))
+  (is (= "q\"q"
+         (get (json/parse-string
+               (store/post->json {:id 1 :body "q\"q" :created-at "c" :author "a" :like-count 0}))
+              "body"))))
+
 (deftest durability-test
   (let [path (str (Files/createTempFile "xb-clj-" ".xitdb" (into-array FileAttribute [])))]
     (with-open [db (open-store path)]
@@ -51,3 +62,4 @@
 (deftest post-json-test
   (is (= "{\"id\":1,\"body\":\"b\",\"created_at\":\"c\",\"author\":\"a\",\"like_count\":2}"
          (post->json {:id 1 :body "b" :created-at "c" :author "a" :like-count 2}))))
+

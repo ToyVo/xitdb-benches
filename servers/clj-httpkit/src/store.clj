@@ -33,16 +33,20 @@
   (->post (get-in @db ["posts" (str id-str)])))
 
 (defn get-feed [db]
-  (let [feed (get @db "feed")]
+  ;; Single deref: the moment snapshot serves the index and all point
+  ;; gets (consistent + ~20 fewer history walks than get-post per id).
+  (let [m @db
+        feed (get m "feed")]
     (if (nil? feed)
       []
       (let [n (count feed)
-        start (max 0 (- n 20))]
-    (into []
-            (comp (map second)
-                  (map #(get-post db %))
-                  (remove nil?))
-            (rseq (vec (xs/page feed start 20))))))))
+            start (max 0 (- n 20))
+            posts (get m "posts")]
+        (into []
+              (comp (map second)
+                    (map #(->post (get posts %)))
+                    (remove nil?))
+              (rseq (vec (xs/page feed start 20))))))))
 
 (defn- now-z []
   (.format (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
@@ -89,9 +93,30 @@
           (sync! db)
           {:already false})))))
 
+(defn json-str
+  "Exact JSON string literal: escapes only \" \\ and U+0000-U+001F
+  (\\u00XX); everything else passes through as UTF-8. Matches the
+  reference servers byte-for-byte on ASCII and round-trips the rest."
+  [^String s]
+  (let [sb (StringBuilder. (+ 2 (.length s)))]
+    (.append sb \")
+    (dotimes [i (.length s)]
+      (let [c (.charAt s i)]
+        (case c
+          \" (.append sb "\\\"")
+          \\ (.append sb "\\\\")
+          \newline (.append sb "\\n")
+          \return (.append sb "\\r")
+          \tab (.append sb "\\t")
+          (if (< (int c) 0x20)
+            (.append sb (format "\\u%04x" (int c)))
+            (.append sb c)))))
+    (.append sb \")
+    (str sb)))
+
 (defn post->json [p]
   (str "{\"id\":" (:id p)
-       ",\"body\":" (json/generate-string (:body p))
-       ",\"created_at\":" (json/generate-string (:created-at p))
-       ",\"author\":" (json/generate-string (:author p))
+       ",\"body\":" (json-str (:body p))
+       ",\"created_at\":" (json-str (:created-at p))
+       ",\"author\":" (json-str (:author p))
        ",\"like_count\":" (:like-count p) "}"))
