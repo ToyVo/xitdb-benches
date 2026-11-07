@@ -89,3 +89,18 @@ jobs:
       - run: bash harness/run.sh servers/zig-std
         env:
           SIZE: ${{ inputs.size || 'small' }}
+
+  odin-std:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.4"
+      - uses: laytan/setup-odin@v2
+        with:
+          release: dev-2026-10
+      - run: cd seed && bun install
+      - run: bash harness/run.sh servers/odin-std
+        env:
+          SIZE: ${{ inputs.size || 'small' }}
