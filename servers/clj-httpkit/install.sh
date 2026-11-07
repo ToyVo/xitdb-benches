@@ -6,7 +6,7 @@ CLJ_VERSION="1.12.6.1673"
 if command -v java >/dev/null && java -version 2>&1 | grep -q "21\.0"; then
   echo "java 21 already installed"
 else
-  apt-get update && apt-get install -y curl ruby
+  apt-get update && apt-get install -y curl ruby ruby
   JDK_URL="https://github.com/adoptium/temurin21-binaries/releases/download/jdk-${JDK_VERSION}/OpenJDK21U-jdk_x64_linux_hotspot_${JDK_VERSION/+/_}.tar.gz"
   curl -fsSL "$JDK_URL" | tar -C /opt -xz
   ln -sfn "/opt/jdk-${JDK_VERSION}" /opt/jdk-21

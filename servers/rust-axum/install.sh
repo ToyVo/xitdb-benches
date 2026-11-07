@@ -11,5 +11,7 @@ else
 fi
 ln -sf /opt/cargo/bin/cargo /usr/local/bin/cargo
 ln -sf /opt/cargo/bin/rustc /usr/local/bin/rustc
+ln -sf /opt/cargo/bin/rustup /usr/local/bin/rustup
+rustup default "$RUST_VERSION"
 cargo --version
 rustc --version

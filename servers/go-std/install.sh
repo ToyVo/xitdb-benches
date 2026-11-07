@@ -8,4 +8,5 @@ if command -v go >/dev/null && go version | grep -q "go$GO_VERSION"; then
 fi
 apt-get update && apt-get install -y build-essential curl
 curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" | tar -C /usr/local -xz
+ln -sf /usr/local/go/bin/go /usr/local/bin/go
 /usr/local/go/bin/go version
