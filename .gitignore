@@ -13,3 +13,5 @@ zig-out/
 dist/
 .DS_Store
 /tmp/xb-*
+.clj-kondo/
+.lsp/

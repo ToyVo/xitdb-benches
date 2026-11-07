@@ -14,4 +14,4 @@ p99<1s, <1% errors.
 | zig-std | — | — | — | local smoke VUS=50 p95=4ms p99=10ms (Mac, full seed); 42/42 small+full; pending M3 hold |
 | clj-httpkit | — | — | — | local smoke VUS=50 p95=16ms p99=33ms (Mac, full clj seed); 42/42 small+full; pending M3 hold |
 | odin-std | — | — | — | local smoke VUS=50 p95=9ms p99=24ms (Mac, full seed); 42/42 small+full; pending M3 hold |
-| java-spring | — | — | — | scaffold |
+| java-spring | — | — | — | local smoke VUS=50 p95=11ms p99=28ms (Mac, full seed); 42/42 small+full; pending M3 hold |
