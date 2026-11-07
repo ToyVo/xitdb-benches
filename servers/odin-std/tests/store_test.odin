@@ -44,7 +44,7 @@ test_store_round_trip :: proc(t: ^testing.T) {
 
 @(test)
 test_store_like :: proc(t: ^testing.T) {
-	s, path := open_test_store("T")
+	s, path := open_test_store("like")
 	defer srv.store_deinit(s)
 	defer delete_test_db(path)
 	srv.store_create_post(s, "alice", "x")
@@ -60,7 +60,7 @@ test_store_like :: proc(t: ^testing.T) {
 
 @(test)
 test_store_missing :: proc(t: ^testing.T) {
-	s, path := open_test_store("T")
+	s, path := open_test_store("missing")
 	defer srv.store_deinit(s)
 	defer delete_test_db(path)
 	_, found := srv.store_get_post(s, 12345)
@@ -82,10 +82,10 @@ test_txn_rule :: proc(t: ^testing.T) {
 	defer xitdb.core_destroy(&core, close_file = true)
 	db, _ := xitdb.database_init(&core, xitdb.sha1_hasher())
 	root, _ := xitdb.write_hash_map_init(xitdb.database_root_cursor(&db))
-	if _, err := xitdb.hash_map_put_cursor(&root, "txn-probe"); err == nil {
-		testing.expect(t, true) // allowed (Go-like): pin it
-	} else {
-		testing.expect(t, true) // throws (Rust-like): pin it
-	}
+	// Observed: allowed (Go/Zig-like, not Rust-like). Pin it so a future
+	// behavior change fails loudly; the planned shape (reads getCursor,
+	// writes runContext) stands either way.
+	_, err := xitdb.hash_map_put_cursor(&root, "txn-probe")
+	testing.expect(t, err == nil)
 	_ = t
 }
