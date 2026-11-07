@@ -181,6 +181,10 @@ fn handleOne(req: *std.http.Server.Request, arena: std.mem.Allocator) bool {
             return keep_open;
         };
         const id_raw = target_copy["/posts/".len .. target_copy.len - "/like".len];
+        if (std.mem.indexOfScalar(u8, id_raw, '/') != null) {
+            errJson(req, keep_open, .not_found, "not found", arena);
+            return keep_open;
+        }
         const id = validate.validPostId(id_raw) orelse {
             errJson(req, keep_open, .bad_request, "invalid post id", arena);
             return keep_open;
