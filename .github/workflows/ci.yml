@@ -65,10 +65,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: "1.4.4"
-      - uses: DeLaGuardo/setup-clojure@13
-        with:
-          clojure-version: 1.12.6.1673
-          jdk-version: 21
+      # No third-party setup action (the pinned one fails at runtime):
+      # install the droplet toolchain instead, which also validates it.
+      - run: sudo bash servers/clj-httpkit/install.sh
       - run: cd seed && bun install
       - run: bash harness/run.sh servers/clj-httpkit
         env:
