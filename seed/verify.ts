@@ -1,15 +1,19 @@
 // Verifies a generated feed.xitdb: meta counts + spot reads.
-// Usage: bun ./seed/verify.ts /path/to/feed.xitdb [--small|--full]
+// Usage: bun ./seed/verify.ts /path/to/feed.xitdb [--small|--full] [--flavor history]
 import {
   CoreBufferedFile,
   Database,
   Hasher,
+  ReadArrayList,
   ReadHashMap,
   ReadSortedMap,
   type ReadCursor,
 } from "xitdb";
 
-const [dbPath, wantFlag] = [process.argv[2], process.argv[3] ?? ""];
+const argv = process.argv.slice(2);
+const dbPath = argv.find((a) => !a.startsWith("--"));
+const wantFlag = argv.find((a) => a === "--small" || a === "--full") ?? "";
+const historyFlavor = argv.some((a) => a === "--flavor" || a === "--flavor=history" || a === "history");
 if (!dbPath) {
   console.error("usage: bun ./seed/verify.ts <feed.xitdb> [--small|--full]");
   process.exit(1);
@@ -20,11 +24,20 @@ const want = wantFlag === "--small"
     ? { users: 50_000, posts: 500_000, likesMean: 4 }
     : null;
 
-const hasher = new Hasher("SHA-1", Hasher.stringToId("sha1"));
+const hasher = historyFlavor ? new Hasher("SHA-1") : new Hasher("SHA-1", Hasher.stringToId("sha1"));
 {
   using core = new CoreBufferedFile(dbPath);
   const db = new Database(core, hasher);
-  const root = new ReadHashMap(db.rootCursor() as unknown as ReadCursor);
+  let rootCursor: ReadCursor;
+  if (historyFlavor) {
+    const history = new ReadArrayList(db.rootCursor() as unknown as ReadCursor);
+    const moment = history.getCursor(0);
+    if (!moment) throw new Error("missing moment 0");
+    rootCursor = moment;
+  } else {
+    rootCursor = db.rootCursor() as unknown as ReadCursor;
+  }
+  const root = new ReadHashMap(rootCursor);
 
   const metaC = root.getCursor("meta");
   if (!metaC) throw new Error("missing meta");
