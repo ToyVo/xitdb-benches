@@ -15,8 +15,11 @@ fi
 if command -v clojure >/dev/null; then
   echo "clojure already installed"
 else
-  curl -fsSL "https://download.clojure.org/install/clojure-tools-${CLJ_VERSION}.tar.gz" | tar -C /opt -xz
-  ln -sf "/opt/clojure-tools-${CLJ_VERSION}/bin/clojure" /usr/local/bin/clojure
+  tmp="$(mktemp -d)"
+  curl -fsSL "https://download.clojure.org/install/clojure-tools-${CLJ_VERSION}.tar.gz" \
+    | tar -C "$tmp" -xz
+  bash "$tmp/clojure-tools/install.sh" --prefix /usr/local
+  rm -rf "$tmp"
 fi
 java -version 2>&1 | head -1
 clojure --version
