@@ -412,3 +412,17 @@ post_json :: proc(p: Post, allocator := context.allocator) -> string {
 	return strings.to_string(sb)
 }
 
+
+
+free_post :: proc(alloc: mem.Allocator, p: Post) {
+	delete(p.body, alloc)
+	delete(p.created_at, alloc)
+	delete(p.author, alloc)
+}
+
+free_posts :: proc(alloc: mem.Allocator, feed: []Post) {
+	for p in feed {
+		free_post(alloc, p)
+	}
+	delete(feed, alloc)
+}
