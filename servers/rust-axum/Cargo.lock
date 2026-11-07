@@ -937,6 +937,8 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 [[package]]
 name = "xitdb"
 version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7bcda23bcc1b415353652b52dfd2881ddbb9b34c30c53a9be70208a825ac397"
 
 [[package]]
 name = "xitdb-bench-rust"
