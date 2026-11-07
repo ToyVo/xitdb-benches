@@ -9,9 +9,11 @@ else
   apt-get update && apt-get install -y build-essential curl git
   curl -fsSL https://sh.rustup.rs | sh -s -- -y --default-toolchain "$RUST_VERSION" --profile minimal --no-modify-path
 fi
-ln -sf /opt/cargo/bin/cargo /usr/local/bin/cargo
-ln -sf /opt/cargo/bin/rustc /usr/local/bin/rustc
+# Symlink the toolchain binaries directly (not the rustup proxies), so
+# cargo/rustc work with no RUSTUP_HOME/CARGO_HOME in the environment.
+TC="/opt/rustup/toolchains/$RUST_VERSION-x86_64-unknown-linux-gnu/bin"
 ln -sf /opt/cargo/bin/rustup /usr/local/bin/rustup
-rustup default "$RUST_VERSION"
+ln -sf "$TC/cargo" /usr/local/bin/cargo
+ln -sf "$TC/rustc" /usr/local/bin/rustc
 cargo --version
 rustc --version

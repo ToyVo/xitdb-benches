@@ -12,7 +12,9 @@ else
   ln -sfn "/opt/jdk-${JDK_VERSION}" /opt/jdk-21
   ln -sf /opt/jdk-21/bin/java /usr/local/bin/java
 fi
-if command -v clojure >/dev/null; then
+# Existence is not enough: an earlier revision of this script installed a
+# broken wrapper (literal PREFIX). Reinstall when unhealthy.
+if command -v clojure >/dev/null && ! grep -q "PREFIX" "$(command -v clojure)"; then
   echo "clojure already installed"
 else
   # Upstream's installer wants an existing prefix dir and ruby under the
