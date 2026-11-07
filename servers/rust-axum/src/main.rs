@@ -65,37 +65,96 @@ pub fn trim_validate_body(
     Ok(trimmed)
 }
 
-#[derive(serde::Deserialize)]
-struct Claims {
-    sub: String,
-    username: Option<serde_json::Value>,
-    exp: usize,
+fn hmac_sha256(key: &[u8], msg: &[u8]) -> [u8; 32] {
+    use sha2::Digest;
+    let mut key_block = [0u8; 64];
+    if key.len() > 64 {
+        let mut h = sha2::Sha256::new();
+        h.update(key);
+        key_block[..32].copy_from_slice(&h.finalize());
+    } else {
+        key_block[..key.len()].copy_from_slice(key);
+    }
+    let mut ipad = [0x36u8; 64];
+    let mut opad = [0x5cu8; 64];
+    for i in 0..64 {
+        ipad[i] ^= key_block[i];
+        opad[i] ^= key_block[i];
+    }
+    let mut inner = sha2::Sha256::new();
+    inner.update(ipad);
+    inner.update(msg);
+    let inner_sum = inner.finalize();
+    let mut outer = sha2::Sha256::new();
+    outer.update(opad);
+    outer.update(inner_sum);
+    outer.finalize().into()
 }
 
+fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut diff = 0u8;
+    for (x, y) in a.iter().zip(b.iter()) {
+        diff |= x ^ y;
+    }
+    diff == 0
+}
+
+// Hand-rolled HS256: jsonwebtoken's `time` subtree outgrew our pinned
+// toolchain, and std has no HMAC. Mirrors the Zig/Odin/Java servers.
 pub fn verify_jwt(
     token: &str,
     secret: &str,
 ) -> std::result::Result<(u64, String), &'static str> {
-    let data = jsonwebtoken::decode::<Claims>(
-        token,
-        &jsonwebtoken::DecodingKey::from_secret(secret.as_bytes()),
-        &jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256),
-    )
-    .map_err(|_| "invalid or expired token")?;
-    let user_id = if !data.claims.sub.is_empty()
-        && data.claims.sub.bytes().all(|b| b.is_ascii_digit())
-    {
-        match data.claims.sub.parse::<u64>() {
+    use base64::Engine;
+    let b64 = base64::engine::general_purpose::URL_SAFE_NO_PAD;
+    let mut parts = token.split('.');
+    let (header_b64, payload_b64, sig_b64) = match (parts.next(), parts.next(), parts.next()) {
+        (Some(h), Some(p), Some(s)) if parts.next().is_none() => (h, p, s),
+        _ => return Err("invalid or expired token"),
+    };
+    let header_raw = b64.decode(header_b64).map_err(|_| "invalid or expired token")?;
+    let header: serde_json::Value =
+        serde_json::from_slice(&header_raw).map_err(|_| "invalid or expired token")?;
+    if header.get("alg").and_then(serde_json::Value::as_str) != Some("HS256") {
+        return Err("invalid or expired token");
+    }
+    let sig = b64.decode(sig_b64).map_err(|_| "invalid or expired token")?;
+    let mut msg = Vec::with_capacity(header_b64.len() + 1 + payload_b64.len());
+    msg.extend_from_slice(header_b64.as_bytes());
+    msg.push(b'.');
+    msg.extend_from_slice(payload_b64.as_bytes());
+    let expected = hmac_sha256(secret.as_bytes(), &msg);
+    if !constant_time_eq(&expected, &sig) {
+        return Err("invalid or expired token");
+    }
+    let payload_raw = b64.decode(payload_b64).map_err(|_| "invalid or expired token")?;
+    let payload: serde_json::Value =
+        serde_json::from_slice(&payload_raw).map_err(|_| "invalid or expired token")?;
+    let data = payload.as_object().ok_or("invalid or expired token")?;
+    let sub = data.get("sub").and_then(serde_json::Value::as_str);
+    let username = data.get("username").and_then(serde_json::Value::as_str);
+    let user_id = match sub {
+        Some(s) if !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit()) => match s.parse::<u64>() {
             Ok(n) if n >= 1 => n,
             _ => return Err("invalid token payload"),
-        }
-    } else {
-        return Err("invalid token payload");
+        },
+        _ => return Err("invalid token payload"),
     };
-    match data.claims.username {
-        Some(serde_json::Value::String(name)) => Ok((user_id, name)),
-        _ => Err("invalid token payload"),
+    let username = match username {
+        Some(name) => name.to_string(),
+        None => return Err("invalid token payload"),
+    };
+    let exp = data
+        .get("exp")
+        .and_then(serde_json::Value::as_u64)
+        .ok_or("invalid or expired token")?;
+    if exp + 60 < now_millis() / 1_000 {
+        return Err("invalid or expired token");
     }
+    Ok((user_id, username))
 }
 
 // ---------- JSON + DB helpers ----------
@@ -203,10 +262,46 @@ fn read_feed_posts(db: &Db) -> Result<Vec<Post>> {
     Ok(out)
 }
 
+fn now_millis() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis().min(u128::from(u64::MAX)) as u64)
+        .unwrap_or(0)
+}
+
+// Millis -> `YYYY-MM-DDTHH:MM:SS.mmmZ` UTC (civil-date algorithm).
+// Domain is ms >= 0 (seed + wall clock); identical output to chrono's
+// `%Y-%m-%dT%H:%M:%S%.3fZ` on that domain (no chrono dep on purpose:
+// its `time` subtree keeps outgrowing our pinned toolchain).
+fn format_millis_z(ms: u64) -> String {
+    let days = ms / 86_400_000;
+    let rem = ms % 86_400_000;
+    let z = days + 719_468;
+    let era = z / 146_097;
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let mut y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    if m <= 2 {
+        y += 1;
+    }
+    format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:03}Z",
+        y,
+        m,
+        d,
+        rem / 3_600_000,
+        (rem % 3_600_000) / 60_000,
+        (rem % 60_000) / 1_000,
+        rem % 1_000
+    )
+}
+
 fn now_millis_z() -> String {
-    chrono::Utc::now()
-        .format("%Y-%m-%dT%H:%M:%S%.3fZ")
-        .to_string()
+    format_millis_z(now_millis())
 }
 
 // ---------- HTTP layer ----------
@@ -504,7 +599,6 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use jsonwebtoken::{EncodingKey, Header, encode};
     use serde_json::json;
 
     #[test]
@@ -556,18 +650,26 @@ mod tests {
     }
 
     fn sign(secret: &str, claims: serde_json::Value) -> String {
-        encode(
-            &Header::default(),
-            &claims,
-            &EncodingKey::from_secret(secret.as_bytes()),
-        )
-        .expect("test sign failed")
+        use base64::Engine;
+        let b64 = base64::engine::general_purpose::URL_SAFE_NO_PAD;
+        let header = b64.encode(b"{\"alg\":\"HS256\",\"typ\":\"JWT\"}");
+        let payload = b64.encode(serde_json::to_vec(&claims).expect("test json failed"));
+        let mac = super::hmac_sha256(secret.as_bytes(), format!("{header}.{payload}").as_bytes());
+        format!("{header}.{payload}.{}", b64.encode(mac))
+    }
+
+    #[test]
+    fn format_millis_vectors() {
+        assert_eq!(format_millis_z(0), "1970-01-01T00:00:00.000Z");
+        assert_eq!(format_millis_z(1_704_067_200_000), "2024-01-01T00:00:00.000Z");
+        assert_eq!(format_millis_z(1_709_251_200_000), "2024-03-01T00:00:00.000Z");
+        assert_eq!(format_millis_z(1_735_689_634_152), "2025-01-01T00:00:34.152Z");
     }
 
     #[test]
     fn jwt_vectors() {
         let secret = "twelve-dollar-challenge";
-        let now = chrono::Utc::now().timestamp();
+        let now = now_millis() / 1_000;
         let good = sign(
             secret,
             json!({"sub": "1", "username": "alice", "iat": now, "exp": now + 3600}),
