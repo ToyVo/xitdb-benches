@@ -34,4 +34,25 @@ shared-CPU noise or DB-state effect, not a scored result. Go's verdict stays
 ## Valid session (fresh seed, real ts-bun)
 
 - Zombie go killed by PID; port 80 verified free before starting bun.
-- (pending)
+
+| VUS | result | p95 | p99 | failed |
+|---|---|---|---|---|
+| 1000 (warm-up) | PASS | 20ms | 81ms | 0% |
+| 2500 | FAIL | 274ms | 1.16s | 0% (p99 only) |
+| 1750 | PASS | 34ms | 109ms | 0% |
+| 2125 | PASS | 201ms | 918ms | 0% |
+| 2312 | PASS | 101ms | 694ms | 0% |
+| 2406 | PASS | 251ms | 585ms | 0% |
+
+Bracket: pass 2406 / fail 2500 (gap 94 ≤ 250). Verdict candidate: **2406**.
+
+## Hold (5m at 2406)
+
+- Cool-down: 5 min idle before the hold.
+- Attempt 1: **FAIL (marginal)** — p95=375ms pass, p99=1.05s (5% over), 0% failed.
+  Plan rule: one retry after a 5-minute idle cool-down.
+- Attempt 2 (run `ts2-hold2406b`) died mid-run: k6-box sshd wedged, k6 got SIGHUP; doesn't count.
+  Switched to detached remote legs (immune to local SSH death); reran as `ts2-hold2406c`.
+- Attempt 2 rerun: **PASS** (exit 0) — 89386/89386 checks, p95=166ms, p99=483ms, max=1.45s.
+
+## Verdict: 2406 VUS
