@@ -78,21 +78,8 @@ func (s *Store) health() bool {
 	return err == nil
 }
 
-func getText(m *xitdb.ReadHashMap, key string) (string, error) {
-	c, err := m.GetCursor(key)
-	if err != nil {
-		return "", err
-	}
-	if c == nil {
-		return "", fmt.Errorf("corrupt post: missing %s", key)
-	}
-	raw, err := c.ReadBytes(maxRead)
-	if err != nil {
-		return "", err
-	}
-	return string(raw), nil
-}
-
+// readPost decodes one post map in a single sequential pass (pm.All)
+// instead of one hash lookup per field.
 func readPost(m *xitdb.ReadHashMap, id string) (*post, error) {
 	c, err := m.GetCursor(id)
 	if err != nil {
@@ -105,41 +92,64 @@ func readPost(m *xitdb.ReadHashMap, id string) (*post, error) {
 	if err != nil {
 		return nil, err
 	}
-	idC, err := pm.GetCursor("id")
-	if err != nil {
-		return nil, err
+	var p post
+	var haveID, haveBody, haveCreated, haveAuthor, haveLC bool
+	for vc, err := range pm.All() {
+		if err != nil {
+			return nil, err
+		}
+		kv, err := vc.ReadKeyValuePair()
+		if err != nil {
+			return nil, err
+		}
+		key, err := kv.KeyCursor.ReadBytes(maxRead)
+		if err != nil {
+			return nil, err
+		}
+		switch string(key) {
+		case "id":
+			if p.ID, err = kv.ValueCursor.ReadUint(); err != nil {
+				return nil, err
+			}
+			haveID = true
+		case "body":
+			raw, err := kv.ValueCursor.ReadBytes(maxRead)
+			if err != nil {
+				return nil, err
+			}
+			p.Body, haveBody = string(raw), true
+		case "created_at":
+			raw, err := kv.ValueCursor.ReadBytes(maxRead)
+			if err != nil {
+				return nil, err
+			}
+			p.CreatedAt, haveCreated = string(raw), true
+		case "author":
+			raw, err := kv.ValueCursor.ReadBytes(maxRead)
+			if err != nil {
+				return nil, err
+			}
+			p.Author, haveAuthor = string(raw), true
+		case "like_count":
+			if p.LikeCount, err = kv.ValueCursor.ReadUint(); err != nil {
+				return nil, err
+			}
+			haveLC = true
+		}
 	}
-	if idC == nil {
+	switch {
+	case !haveID:
 		return nil, errors.New("corrupt post: missing id")
-	}
-	num, err := idC.ReadUint()
-	if err != nil {
-		return nil, err
-	}
-	body, err := getText(pm, "body")
-	if err != nil {
-		return nil, err
-	}
-	created, err := getText(pm, "created_at")
-	if err != nil {
-		return nil, err
-	}
-	author, err := getText(pm, "author")
-	if err != nil {
-		return nil, err
-	}
-	lcC, err := pm.GetCursor("like_count")
-	if err != nil {
-		return nil, err
-	}
-	if lcC == nil {
+	case !haveBody:
+		return nil, errors.New("corrupt post: missing body")
+	case !haveCreated:
+		return nil, errors.New("corrupt post: missing created_at")
+	case !haveAuthor:
+		return nil, errors.New("corrupt post: missing author")
+	case !haveLC:
 		return nil, errors.New("corrupt post: missing like_count")
 	}
-	lc, err := lcC.ReadUint()
-	if err != nil {
-		return nil, err
-	}
-	return &post{ID: num, Body: body, CreatedAt: created, Author: author, LikeCount: lc}, nil
+	return &p, nil
 }
 
 func (s *Store) getPost(id uint64) (*post, bool, error) {
