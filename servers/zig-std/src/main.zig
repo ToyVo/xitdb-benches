@@ -64,7 +64,7 @@ fn handleOne(req: *std.http.Server.Request, arena: std.mem.Allocator) bool {
         errJson(req, keep_open, .expectation_failed, "expectation failed", arena);
         return keep_open;
     } else if (want_body and (req.head.content_length orelse 0) > 0) {
-        const reader = req.readerExpectNone(arena.alloc(u8, 65536) catch return keep_open);
+        const reader = req.readerExpectNone(arena.alloc(u8, 8192) catch return keep_open);
         var acc: std.Io.Writer.Allocating = .init(arena);
         defer acc.deinit();
         var chunk: [8192]u8 = undefined;
@@ -251,8 +251,8 @@ fn handleConn(stream: std.Io.net.Stream, io: std.Io) void {
     var arena_state = std.heap.ArenaAllocator.init(g_alloc);
     defer arena_state.deinit();
     const conn_alloc = arena_state.allocator();
-    const in_buf = conn_alloc.alloc(u8, 65536) catch return;
-    const out_buf = conn_alloc.alloc(u8, 65536) catch return;
+    const in_buf = conn_alloc.alloc(u8, 8192) catch return;
+    const out_buf = conn_alloc.alloc(u8, 8192) catch return;
     var sreader = stream.reader(io, in_buf);
     var swriter = stream.writer(io, out_buf);
     var srv = std.http.Server.init(&sreader.interface, &swriter.interface);
