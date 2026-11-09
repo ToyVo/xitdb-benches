@@ -5,6 +5,7 @@
 # `docker compose up` starts nothing; `--profile m2` fails at build
 # until the M2 Dockerfiles exist. Port map (contracts.sh greps these):
 # rust 3001, go 3002, ts 3003, zig 3004, clj 3005, odin 3006, java 3007.
+# sqlite twins: rust 3008, go 3009, ts 3010, zig 3011, clj 3012, odin 3013, java 3014.
 services:
   rust-axum:
     profiles: [m2]
@@ -35,6 +36,35 @@ services:
     profiles: [m2]
     build: ./servers/java-spring
     ports: ["3007:3000"]
+  rust-axum-sqlite:
+    profiles: [m2]
+    build: ./servers/rust-axum-sqlite
+    ports: ["3008:3000"]
+    environment: [HOST=0.0.0.0, PORT=3000]
+  go-std-sqlite:
+    profiles: [m2]
+    build: ./servers/go-std-sqlite
+    ports: ["3009:3000"]
+  ts-bun-sqlite:
+    profiles: [m2]
+    build: ./servers/ts-bun-sqlite
+    ports: ["3010:3000"]
+  zig-std-sqlite:
+    profiles: [m2]
+    build: ./servers/zig-std-sqlite
+    ports: ["3011:3000"]
+  clj-httpkit-sqlite:
+    profiles: [m2]
+    build: ./servers/clj-httpkit-sqlite
+    ports: ["3012:3000"]
+  odin-std-sqlite:
+    profiles: [m2]
+    build: ./servers/odin-std-sqlite
+    ports: ["3013:3000"]
+  java-spring-sqlite:
+    profiles: [m2]
+    build: ./servers/java-spring-sqlite
+    ports: ["3014:3000"]
   # nginx (optional, mirrors bench/nginx.conf, 64 idle conns):
   # nginx:
   #   image: nginx:stable

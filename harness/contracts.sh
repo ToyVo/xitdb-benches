@@ -15,8 +15,15 @@ declare -A WANT=(
   [java-spring]="Spring Boot"
   [clj-httpkit]="http-kit"
   [odin-std]="Odin"
+  [rust-axum-sqlite]="rusqlite"
+  [go-std-sqlite]="mattn"
+  [ts-bun-sqlite]="bun:sqlite"
+  [zig-std-sqlite]="amalgamation"
+  [java-spring-sqlite]="xerial"
+  [clj-httpkit-sqlite]="xerial"
+  [odin-std-sqlite]="sqlite3"
 )
-for name in rust-axum go-std ts-bun zig-std java-spring clj-httpkit odin-std; do
+for name in rust-axum go-std ts-bun zig-std java-spring clj-httpkit odin-std rust-axum-sqlite go-std-sqlite ts-bun-sqlite zig-std-sqlite java-spring-sqlite clj-httpkit-sqlite odin-std-sqlite; do
   d="$ROOT/servers/$name"
   for f in install.sh build.sh start.sh README.md; do
     if [ -f "$d/$f" ]; then ok "$name/$f exists"; else bad "$name/$f exists"; fi
@@ -36,7 +43,7 @@ for k in users posts feed likes meta; do
   if grep -q "$k" "$ROOT/schema-xitdb.md" 2>/dev/null; then ok "schema-xitdb.md has $k"
   else bad "schema-xitdb.md has $k"; fi
 done
-for p in 3001 3002 3003 3004 3005 3006 3007; do
+for p in 3001 3002 3003 3004 3005 3006 3007 3008 3009 3010 3011 3012 3013 3014; do
   if grep -q "$p" "$ROOT/docker-compose.yml" 2>/dev/null; then ok "compose has $p"
   else bad "compose has $p"; fi
 done

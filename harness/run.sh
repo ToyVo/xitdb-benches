@@ -13,7 +13,12 @@ DIR="$(cd "${1:?usage: harness/run.sh servers/<name>}" && pwd)"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SIZE="${SIZE:-small}"
 FLAVOR="${FLAVOR:-hashmap}"
-SEED_FILE="$([ "$FLAVOR" = history ] && echo feed-clj.xitdb || echo feed.xitdb)"
+STORE="${STORE:-xitdb}"
+if [ "$STORE" = sqlite ]; then
+  SEED_FILE="feed.db"
+else
+  SEED_FILE="$([ "$FLAVOR" = history ] && echo feed-clj.xitdb || echo feed.xitdb)"
+fi
 for f in build.sh start.sh; do [ -f "$DIR/$f" ] || { echo "missing $DIR/$f"; exit 1; }; done
 
 export JWT_SECRET=twelve-dollar-challenge HOST=127.0.0.1 PORT="${PORT:-3000}"
@@ -21,8 +26,13 @@ export GOLDEN_DIR="$ROOT/harness/golden-$SIZE"
 [ -d "$GOLDEN_DIR" ] || { echo "no $GOLDEN_DIR — run: bash harness/gen-golden.sh $SIZE"; exit 1; }
 
 SEED_DIR="$(mktemp -d)"
-echo "== seed --$SIZE --flavor $FLAVOR ($SEED_DIR)"
-(cd "$ROOT/seed" && bun ./generate-xitdb.ts "--$SIZE" --flavor "$FLAVOR" "$SEED_DIR")
+if [ "$STORE" = sqlite ]; then
+  echo "== sqlite seed --$SIZE ($SEED_DIR)"
+  (cd "$ROOT/seed" && bun ./generate-sqlite.ts "--$SIZE" "$SEED_DIR")
+else
+  echo "== seed --$SIZE --flavor $FLAVOR ($SEED_DIR)"
+  (cd "$ROOT/seed" && bun ./generate-xitdb.ts "--$SIZE" --flavor "$FLAVOR" "$SEED_DIR")
+fi
 export XITDB_PATH="$SEED_DIR/$SEED_FILE"
 
 echo "== build"; bash "$DIR/build.sh"

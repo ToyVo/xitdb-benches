@@ -30,6 +30,10 @@ jobs:
       - run: bash harness/run.sh servers/rust-axum
         env:
           SIZE: ${{ inputs.size || 'small' }}
+      - run: bash harness/run.sh servers/rust-axum-sqlite
+        env:
+          SIZE: ${{ inputs.size || 'small' }}
+          STORE: sqlite
 
   go-std:
     runs-on: ubuntu-24.04
@@ -45,6 +49,10 @@ jobs:
       - run: bash harness/run.sh servers/go-std
         env:
           SIZE: ${{ inputs.size || 'small' }}
+      - run: bash harness/run.sh servers/go-std-sqlite
+        env:
+          SIZE: ${{ inputs.size || 'small' }}
+          STORE: sqlite
 
   ts-bun:
     runs-on: ubuntu-24.04
@@ -57,6 +65,10 @@ jobs:
       - run: bash harness/run.sh servers/ts-bun
         env:
           SIZE: ${{ inputs.size || 'small' }}
+      - run: bash harness/run.sh servers/ts-bun-sqlite
+        env:
+          SIZE: ${{ inputs.size || 'small' }}
+          STORE: sqlite
 
   clj-httpkit:
     runs-on: ubuntu-24.04
@@ -73,6 +85,10 @@ jobs:
         env:
           SIZE: ${{ inputs.size || 'small' }}
           FLAVOR: history
+      - run: bash harness/run.sh servers/clj-httpkit-sqlite
+        env:
+          SIZE: ${{ inputs.size || 'small' }}
+          STORE: sqlite
 
   zig-std:
     runs-on: ubuntu-24.04
@@ -85,9 +101,14 @@ jobs:
         with:
           version: 0.17.0
       - run: cd seed && bun install
+      - run: bash servers/zig-std-sqlite/install.sh
       - run: bash harness/run.sh servers/zig-std
         env:
           SIZE: ${{ inputs.size || 'small' }}
+      - run: bash harness/run.sh servers/zig-std-sqlite
+        env:
+          SIZE: ${{ inputs.size || 'small' }}
+          STORE: sqlite
 
   odin-std:
     runs-on: ubuntu-24.04
@@ -100,9 +121,14 @@ jobs:
         with:
           release: dev-2026-10
       - run: cd seed && bun install
+      - run: sudo bash servers/odin-std-sqlite/install.sh
       - run: bash harness/run.sh servers/odin-std
         env:
           SIZE: ${{ inputs.size || 'small' }}
+      - run: bash harness/run.sh servers/odin-std-sqlite
+        env:
+          SIZE: ${{ inputs.size || 'small' }}
+          STORE: sqlite
 
   java-spring:
     runs-on: ubuntu-24.04
@@ -119,3 +145,7 @@ jobs:
       - run: bash harness/run.sh servers/java-spring
         env:
           SIZE: ${{ inputs.size || 'small' }}
+      - run: bash harness/run.sh servers/java-spring-sqlite
+        env:
+          SIZE: ${{ inputs.size || 'small' }}
+          STORE: sqlite
