@@ -116,7 +116,10 @@ read_post :: proc(m: xitdb.Read_Hash_Map, id: string, allocator := context.alloc
 	return Post{id = num, body = body, created_at = created, author = author, like_count = lc}, true
 }
 
-store_get_post :: proc(s: ^Store, id: u64) -> (Post, bool) {
+// allocator backs the returned Post strings (request-scoped: the caller
+// serializes before it is freed). Defaults to the ambient context so
+// handle_one's arena flows through untouched.
+store_get_post :: proc(s: ^Store, id: u64, allocator := context.allocator) -> (Post, bool) {
 	id_str, idok := sprint_u64(s.alloc, id)
 	if !idok {
 		return {}, false
@@ -134,17 +137,17 @@ store_get_post :: proc(s: ^Store, id: u64) -> (Post, bool) {
 	if qerr != nil {
 		return {}, false
 	}
-	return read_post(posts, id_str, s.alloc)
+	return read_post(posts, id_str, allocator)
 }
 
-store_get_feed :: proc(s: ^Store) -> ([]Post, bool) {
+store_get_feed :: proc(s: ^Store, allocator := context.allocator) -> ([]Post, bool) {
 	root, err := xitdb.read_hash_map_init(xitdb.database_root_cursor(&s.db))
 	if err != nil {
 		return nil, false
 	}
 	fc, ferr := xitdb.hash_map_get_cursor(root, "feed")
 	if ferr != nil || fc == nil {
-		empty := make([]Post, 0, s.alloc)
+		empty := make([]Post, 0, allocator)
 		return empty, true
 	}
 	feed, _ := xitdb.read_sorted_map_init(fc.?)
@@ -158,11 +161,11 @@ store_get_feed :: proc(s: ^Store) -> ([]Post, bool) {
 	}
 	pc, _ := xitdb.hash_map_get_cursor(root, "posts")
 	if pc == nil {
-		empty := make([]Post, 0, s.alloc)
+		empty := make([]Post, 0, allocator)
 		return empty, true
 	}
 	posts, _ := xitdb.read_hash_map_init(pc.?)
-	out := make([dynamic]Post, s.alloc)
+	out := make([dynamic]Post, allocator)
 	i := start
 	for i < count {
 		kv, kerr := xitdb.sorted_map_get_index_kv_pair(feed, i)
@@ -170,13 +173,13 @@ store_get_feed :: proc(s: ^Store) -> ([]Post, bool) {
 			i += 1
 			continue
 		}
-		raw, rerr := xitdb.cursor_read_bytes(kv.?.value_cursor, 8 * 1024 * 1024, s.alloc)
+		raw, rerr := xitdb.cursor_read_bytes(kv.?.value_cursor, 8 * 1024 * 1024, allocator)
 		if rerr != nil {
 			i += 1
 			continue
 		}
-		defer delete(raw, s.alloc)
-		if p, ok := read_post(posts, string(raw), s.alloc); ok {
+		defer delete(raw, allocator)
+		if p, ok := read_post(posts, string(raw), allocator); ok {
 			append(&out, p)
 		}
 		i += 1
@@ -259,10 +262,10 @@ create_ctx_run :: proc(cursor: ^xitdb.Write_Cursor, user_data: rawptr) -> xitdb.
 	return nil
 }
 
-store_create_post :: proc(s: ^Store, username: string, body: string) -> (Post, bool) {
+store_create_post :: proc(s: ^Store, username: string, body: string, allocator := context.allocator) -> (Post, bool) {
 	created: Post
 	have_out := false
-	ctx := Create_Ctx{alloc = s.alloc, username = username, body = body, out = &created, have_out = &have_out}
+	ctx := Create_Ctx{alloc = allocator, username = username, body = body, out = &created, have_out = &have_out}
 	if xitdb.database_run_context(&s.db, create_ctx_run, &ctx) != nil {
 		return {}, false
 	}
@@ -313,7 +316,7 @@ like_ctx_run :: proc(cursor: ^xitdb.Write_Cursor, user_data: rawptr) -> xitdb.Er
 	return nil
 }
 
-store_like_post :: proc(s: ^Store, id: u64, user_id: u64) -> (found: bool, already: bool) {
+store_like_post :: proc(s: ^Store, id: u64, user_id: u64, allocator := context.allocator) -> (found: bool, already: bool) {
 	id_str, idok := sprint_u64(s.alloc, id)
 	if !idok {
 		return false, false
@@ -324,7 +327,7 @@ store_like_post :: proc(s: ^Store, id: u64, user_id: u64) -> (found: bool, alrea
 		return false, false
 	}
 	defer delete(user_str, s.alloc)
-	ctx := Like_Ctx{alloc = s.alloc, id_str = id_str, user_str = user_str, found = &found, already = &already}
+	ctx := Like_Ctx{alloc = allocator, id_str = id_str, user_str = user_str, found = &found, already = &already}
 	if xitdb.database_run_context(&s.db, like_ctx_run, &ctx) != nil {
 		return false, false
 	}

@@ -24,7 +24,11 @@ gate runs direct.
 
 OS thread per connection under one mutex (the DB takes one writer at
 a time); requests on a connection are served sequentially with
-keep-alive. A 4MB arena per connection owns all transient bytes.
+keep-alive. A 256KB arena per connection owns transient bytes and is
+reset every request; the reusable read buffer and request bodies live
+on the heap, and store reads allocate into the request arena (never
+the store heap), so per-connection memory stays flat for the life of
+the connection.
 
 ## Optimizations (and why)
 

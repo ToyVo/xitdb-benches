@@ -379,7 +379,11 @@ is_json_object :: proc(body: string) -> bool {
 }
 
 serve_conn :: proc(sock: net.TCP_Socket) {
-	backing, berr := make([]u8, 4 * mem.Megabyte)
+	// Per-connection scratch is bounded: the arena holds at most one
+	// request's worth (head + response, <64KB typical) and is reset every
+	// iteration. buf and request bodies live on the heap so the reset
+	// cannot invalidate them.
+	backing, berr := make([]u8, 256 * mem.Kilobyte)
 	if berr != nil {
 		return
 	}
@@ -387,7 +391,7 @@ serve_conn :: proc(sock: net.TCP_Socket) {
 	arena: mem.Arena
 	mem.arena_init(&arena, backing)
 	alloc := mem.arena_allocator(&arena)
-	buf := make([dynamic]u8, alloc)
+	buf := make([dynamic]u8, context.allocator)
 	defer delete(buf)
 	for {
 		n, ok := read_head(sock, &buf)
@@ -398,6 +402,7 @@ serve_conn :: proc(sock: net.TCP_Socket) {
 		// Body for POST /posts only, gated on content-length (unknown-length
 		// reads would block forever; other routes ignore the body).
 		body := ""
+		b: []u8 = nil
 		{
 			method_end := strings.index_byte(head, ' ')
 			target_end := -1
@@ -419,12 +424,14 @@ serve_conn :: proc(sock: net.TCP_Socket) {
 					if mblen > 1 << 20 {
 						break // absurd body: close rather than blow the arena
 					}
-					b := make([]u8, mblen, alloc)
+					b = make([]u8, mblen, context.allocator)
 					// read_head may already hold body bytes past the header.
 					buffered := buf[n:]
 					n0 := min(len(buffered), mblen)
 					copy(b, buffered[:n0])
 					if !read_exactly(sock, b[n0:]) {
+						delete(b)
+						b = nil
 						break
 					}
 					body = string(b)
@@ -432,6 +439,11 @@ serve_conn :: proc(sock: net.TCP_Socket) {
 			}
 		}
 		keep := handle_one(sock, head, body, alloc)
+		if b != nil {
+			delete(b)
+			b = nil
+		}
+		mem.arena_free_all(&arena)
 		// Reset buffer but keep any pipelined bytes (none expected).
 		clear(&buf)
 		if !keep {
