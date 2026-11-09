@@ -1,0 +1,11 @@
+{:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "1.12.0"}
+        org.clojure/java.jdbc {:mvn/version "0.7.12"}
+        org.xerial/sqlite-jdbc {:mvn/version "3.46.1.0"}
+        http-kit/http-kit {:mvn/version "2.8.0"}
+        cheshire/cheshire {:mvn/version "5.13.0"}
+        buddy/buddy-sign {:mvn/version "3.6.1-359"}}
+ :mvn/repos {"clojars" {:url "https://repo.clojars.org/"}}
+ :aliases {:test {:extra-paths ["test"]}
+           :build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.11"}}
+                   :ns-default build}}}
