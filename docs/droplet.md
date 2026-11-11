@@ -30,3 +30,30 @@
 
 rust-axum, go-std, ts-bun, zig-std, java-spring, odin-std,
 clj-httpkit (`FLAVOR=history`).
+
+---
+
+# Droplet provision record (M4/B9 re-score batch)
+
+- Bench: `xb2-bench` (159.89.123.95), s-1vcpu-2gb, tor1, Ubuntu 24.04.
+- k6 driver: `xb2-k6` (159.89.122.17), s-2vcpu-4gb from the start
+  (M3 learned a 1gb driver OOM-starves at 2500 VUs), k6 v1.8.2.
+- SSH: throwaway `xitdb-m4-batch` ed25519 key (deleted at batch end).
+- Same toolchain versions as M3 (verified identical); twin extras:
+  zig amalgamation 3.54.1 (via twin install.sh), libsqlite3-dev
+  (via twin install.sh). Master seeds: hashmap full (1010MB), history
+  full (634MB), sqlite full (275MB).
+
+## On-box small gates (all 14 × 42/42)
+
+All 7 xitdb servers (M4a-fixed code) + all 7 `-sqlite` twins
+(`STORE=sqlite`), small seeds.
+
+## Batch notes
+
+- k6-box sshd wedged twice mid-batch (M3 saw it once); detached legs
+  meant no data loss. One reboot issued; box recovered on its own.
+- Contaminated legs (non-monotonic 8–26x outliers) were rerun fresh
+  and marked in the run logs, never silently kept.
+- M3-vs-M4 xitdb verdicts are NOT comparable across batches (same rust
+  binary: 5000 vs 4062 — droplet variance). Every xVAS is same-box.
